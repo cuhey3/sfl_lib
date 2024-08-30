@@ -1,5 +1,6 @@
 mod sfl;
 mod utils;
+use crate::sfl::SflStage::{JP2024DivisionF, JP2024DivisionS};
 use crate::sfl::{
     create_key_function_and_init_rating_map, get_win_percentage, update_rating, SflRatingSetting,
     SflRecord, SflStage, SflTeam,
@@ -33,65 +34,54 @@ macro_rules! console_log {
 }
 
 #[wasm_bindgen]
+pub fn get_division_matches() -> JsValue {
+    let result = js_sys::Array::new();
+    for division in [JP2024DivisionS, JP2024DivisionF].iter() {
+        for sfl_match in division.get_matches().iter() {
+            let division_expression = match division {
+                JP2024DivisionS => "S",
+                JP2024DivisionF => "F",
+                _ => "N",
+            };
+            let match_array = js_sys::Array::new();
+            match_array.push(&JsValue::from(sfl_match.date_expression.to_owned()));
+            match_array.push(&JsValue::from(sfl_match.section.to_owned()));
+            match_array.push(&JsValue::from(sfl_match.branch.to_owned()));
+            match_array.push(&JsValue::from(division_expression));
+            match_array.push(&JsValue::from(&sfl_match.team.to_string()));
+            match_array.push(&JsValue::from(&sfl_match.opponent_team.to_string()));
+            match_array.push(&JsValue::from(sfl_match.is_home));
+            result.push(&match_array);
+        }
+    }
+    result.sort();
+    JsValue::from(&result)
+}
+
+#[wasm_bindgen]
 pub fn greet(
-    inputs1: js_sys::Array,
-    inputs2: js_sys::Array,
-    inputs3: js_sys::Array,
-    division: &str,
+    division_s_raw_results: js_sys::Array,
+    division_f_raw_results: js_sys::Array,
     enable_rate: bool,
 ) -> JsValue {
-    console_log!("{:?}", inputs1);
-    console_log!("{:?}", inputs2);
-    console_log!("{:?}", inputs3);
-    console_log!("{:?}", division);
-    let mut division_s_results = vec![
-        // 1節
-        // match 1
-        vec![
-            true, true, false, false, true, true, false, true, false, true, false, true,
-        ],
-        // match 2
-        vec![
-            true, true, false, true, false, true, true, true, true, false,
-        ],
-        // match 3
-        vec![
-            true, false, true, true, false, true, false, false, true, true, false, true,
-        ],
-        // 2節
-        // match 1
-        vec![
-            false, false, false, false, true, true, true, false, true, true, false, false,
-        ],
-        // match 2
-        vec![
-            true, true, false, true, false, true, false, true, false, false, false, false,
-        ],
-        // // match 3
-        vec![
-            false, true, false, false, true, true, false, false, true, true, true, false,
-        ],
-    ];
-    let mut division_f_results = vec![
-        vec![
-            true, true, false, false, true, false, true, true, false, false, false, false,
-        ],
-        vec![
-            false, false, false, true, true, false, false, true, false, true, true, false,
-        ],
-        vec![
-            false, false, false, true, true, false, true, true, true, false, false, false,
-        ],
-    ];
-    if division == "s" {
-        division_s_results.push(inputs1.iter().map(|v| v.as_bool().unwrap()).collect());
-        division_s_results.push(inputs2.iter().map(|v| v.as_bool().unwrap()).collect());
-        division_s_results.push(inputs3.iter().map(|v| v.as_bool().unwrap()).collect());
-    } else if division == "f" {
-        division_f_results.push(inputs1.iter().map(|v| v.as_bool().unwrap()).collect());
-        division_f_results.push(inputs2.iter().map(|v| v.as_bool().unwrap()).collect());
-        division_f_results.push(inputs3.iter().map(|v| v.as_bool().unwrap()).collect());
+    let mut division_s_results: Vec<Vec<bool>> = vec![];
+    for parent_array in division_s_raw_results.iter() {
+        let match_result: Vec<bool> = js_sys::Array::from(&parent_array)
+            .iter()
+            .map(|v| v.as_bool().unwrap())
+            .collect();
+        division_s_results.push(match_result);
     }
+    let mut division_f_results: Vec<Vec<bool>> = vec![];
+    for parent_array in division_f_raw_results.iter() {
+        let match_result: Vec<bool> = js_sys::Array::from(&parent_array)
+            .iter()
+            .map(|v| v.as_bool().unwrap())
+            .collect();
+        division_f_results.push(match_result);
+    }
+    console_log!("{:?}", division_s_results.to_owned());
+    console_log!("{:?}", division_f_results.to_owned());
     let simulate_results =
         get_simulate_result(SflStage::JP2024DivisionS, enable_rate, division_s_results);
     let simulate_results2 =
@@ -271,8 +261,8 @@ fn get_simulate_result(
         place_sim_count.insert(team.to_owned(), (counts.to_owned(), points));
     }
 
-    // 1000回試行して小数点第一位まで表示
-    for x in 0..1000 {
+    // 10000回試行して小数点第一位まで表示
+    for x in 0..10000 {
         // ランダムに結果をセット（レーティング処理を追加するならここ）
         for records in initial_record_matches.iter_mut() {
             for record in records.iter_mut() {
@@ -300,9 +290,9 @@ fn get_simulate_result(
             let sum: u32 = records.iter().map(|r| r.point).sum();
             // ポイントのセットがうまくいっていないと1試合のポイントが45を超える
             if sum > 45 || sum < 40 {
-                println!("{:?}", sum);
-                println!("{:?}", records);
-                println!("{:?}", x);
+                console_log!("{:?}", sum);
+                console_log!("{:?}", records);
+                console_log!("{:?}", x);
                 panic!()
             }
         }
@@ -371,10 +361,10 @@ fn get_simulate_result(
             .map(|num| num.to_string())
             .collect::<Vec<String>>()
             .join("\t");
-        println!("{:?}\t{}", team, places_text);
+        // console_log!("{:?}\t{}", team, places_text);
     }
-    println!("\n");
-    println!("TEAM\tMMAW\tMMHM\tLDAW\tLDHM");
+    // console_log!("\n");
+    // console_log!("TEAM\tMMAW\tMMHM\tLDAW\tLDHM");
     for team in sfl_stage.get_teams().iter() {
         let rating_text = [100_u8, 101_u8, 110_u8, 111_u8]
             .into_iter()
@@ -387,9 +377,9 @@ fn get_simulate_result(
             })
             .collect::<Vec<String>>()
             .join("\t");
-        println!("{:?}\t{}", team, rating_text);
+        // console_log!("{:?}\t{}", team, rating_text);
     }
-    println!("{:?}", place_sim_count);
+    // console_log!("{:?}", place_sim_count);
     let mut result_map: HashMap<SflTeam, (Vec<u32>, (u32, u32, i32, i32, f64, f64, f64, f64))> =
         HashMap::new();
     for team in sfl_stage.get_teams() {
