@@ -1,5 +1,7 @@
-use crate::sfl::GameType::{EXTRA, GENERAL, MID, VAN};
-use crate::sfl::SflStage::{JP2024DivisionF, JP2024DivisionS};
+use crate::sfl::GameType::{PlayoffExtra, EXTRA, GENERAL, MID, VAN};
+use crate::sfl::SflStage::{
+    JP2024AllDivision, JP2024DivisionF, JP2024DivisionS, JP2024GrandFinal, JP2024Playoff,
+};
 use crate::sfl::SflTeam::*;
 use std::cmp::PartialEq;
 use std::collections::HashMap;
@@ -91,6 +93,7 @@ pub enum GameType {
     MID,
     GENERAL,
     EXTRA,
+    PlayoffExtra,
 }
 
 impl GameType {
@@ -100,32 +103,118 @@ impl GameType {
             MID => 10,
             GENERAL => 20,
             EXTRA => 5,
+            PlayoffExtra => 10,
         }
     }
     fn is_leader(&self) -> bool {
         match self {
             VAN | MID => false,
-            GENERAL | EXTRA => true,
+            GENERAL | EXTRA | PlayoffExtra => true,
         }
     }
     fn get_games_by_stage(sfl_stage: &SflStage) -> Vec<(u32, GameType)> {
         match sfl_stage {
-            JP2024DivisionS | JP2024DivisionF => {
-                vec![
-                    (1, VAN),
-                    (2, VAN),
-                    (3, VAN),
-                    (1, MID),
-                    (2, MID),
-                    (3, MID),
-                    (1, GENERAL),
-                    (2, GENERAL),
-                    (3, GENERAL),
-                    (4, GENERAL),
-                    (5, GENERAL),
-                    (1, EXTRA),
-                ]
-            }
+            JP2024DivisionS | JP2024DivisionF | JP2024AllDivision => vec![
+                (1, VAN),
+                (2, VAN),
+                (3, VAN),
+                (1, MID),
+                (2, MID),
+                (3, MID),
+                (1, GENERAL),
+                (2, GENERAL),
+                (3, GENERAL),
+                (4, GENERAL),
+                (5, GENERAL),
+                (1, EXTRA),
+            ],
+            JP2024Playoff => vec![
+                (1, VAN),
+                (2, VAN),
+                (3, VAN),
+                (1, MID),
+                (2, MID),
+                (3, MID),
+                (1, GENERAL),
+                (2, GENERAL),
+                (3, GENERAL),
+                (4, GENERAL),
+                (5, GENERAL),
+                (1, VAN),
+                (2, VAN),
+                (3, VAN),
+                (1, MID),
+                (2, MID),
+                (3, MID),
+                (1, GENERAL),
+                (2, GENERAL),
+                (3, GENERAL),
+                (4, GENERAL),
+                (5, GENERAL),
+                (1, VAN),
+                (2, VAN),
+                (3, VAN),
+                (1, MID),
+                (2, MID),
+                (3, MID),
+                (1, GENERAL),
+                (2, GENERAL),
+                (3, GENERAL),
+                (4, GENERAL),
+                (5, GENERAL),
+                (1, PlayoffExtra),
+                (2, PlayoffExtra),
+                (3, PlayoffExtra),
+            ],
+            JP2024GrandFinal => vec![
+                (1, VAN),
+                (2, VAN),
+                (3, VAN),
+                (1, MID),
+                (2, MID),
+                (3, MID),
+                (1, GENERAL),
+                (2, GENERAL),
+                (3, GENERAL),
+                (4, GENERAL),
+                (5, GENERAL),
+                (1, VAN),
+                (2, VAN),
+                (3, VAN),
+                (1, MID),
+                (2, MID),
+                (3, MID),
+                (1, GENERAL),
+                (2, GENERAL),
+                (3, GENERAL),
+                (4, GENERAL),
+                (5, GENERAL),
+                (1, VAN),
+                (2, VAN),
+                (3, VAN),
+                (1, MID),
+                (2, MID),
+                (3, MID),
+                (1, GENERAL),
+                (2, GENERAL),
+                (3, GENERAL),
+                (4, GENERAL),
+                (5, GENERAL),
+                (1, VAN),
+                (2, VAN),
+                (3, VAN),
+                (1, MID),
+                (2, MID),
+                (3, MID),
+                (1, GENERAL),
+                (2, GENERAL),
+                (3, GENERAL),
+                (4, GENERAL),
+                (5, GENERAL),
+                (1, PlayoffExtra),
+                (2, PlayoffExtra),
+                (3, PlayoffExtra),
+            ],
             _ => vec![],
         }
     }
@@ -135,6 +224,7 @@ impl GameType {
 pub enum SflStage {
     JP2024DivisionS,
     JP2024DivisionF,
+    JP2024AllDivision,
     JP2024Playoff,
     JP2024GrandFinal,
 }
@@ -144,85 +234,184 @@ impl SflStage {
         match self {
             JP2024DivisionS => vec![G8S, DFM, SOL, IBS, OJA, SNB],
             JP2024DivisionF => vec![CR, CAG, IXA, RC, VAR, FAV],
+            JP2024AllDivision => vec![G8S, DFM, SOL, IBS, OJA, SNB, CR, CAG, IXA, RC, VAR, FAV],
             _ => vec![],
         }
     }
+
     pub fn get_initial_records(&self) -> Vec<Vec<SflRecord>> {
         self.get_matches()
             .iter()
             .map(|sfl_match| self.match_to_records(sfl_match))
             .collect()
     }
+
+    pub fn get_playoff_records(&self, team: &SflTeam, opponent_team: &SflTeam) -> Vec<SflRecord> {
+        let sfl_match = self.get_playoff_match(team, opponent_team);
+        self.match_to_records(&sfl_match)
+    }
+
+    pub fn get_grand_final_records(
+        &self,
+        team: &SflTeam,
+        opponent_team: &SflTeam,
+    ) -> Vec<SflRecord> {
+        let sfl_match = self.get_grand_final_match(team, opponent_team);
+        self.match_to_records(&sfl_match)
+    }
+    pub fn get_playoff_match(&self, team: &SflTeam, opponent_team: &SflTeam) -> SflMatch {
+        SflMatch {
+            section: 0,
+            branch: 0,
+            date_expression: "".to_string(),
+            sfl_stage: JP2024Playoff,
+            team: team.to_owned(),
+            opponent_team: opponent_team.to_owned(),
+            is_home: false,
+        }
+    }
+
+    pub fn get_grand_final_match(&self, team: &SflTeam, opponent_team: &SflTeam) -> SflMatch {
+        SflMatch {
+            section: 0,
+            branch: 0,
+            date_expression: "".to_string(),
+            sfl_stage: JP2024GrandFinal,
+            team: team.to_owned(),
+            opponent_team: opponent_team.to_owned(),
+            is_home: false,
+        }
+    }
     pub fn get_matches(&self) -> Vec<SflMatch> {
         match self {
-            JP2024DivisionS => {
-                vec![
-                    ("08/16", 1, 1, DFM, OJA),
-                    ("08/16", 1, 2, G8S, SNB),
-                    ("08/16", 1, 3, SOL, IBS),
-                    ("08/27", 2, 1, SNB, DFM),
-                    ("08/27", 2, 2, IBS, OJA),
-                    ("08/27", 2, 3, SOL, G8S),
-                    ("09/03", 3, 1, OJA, SOL),
-                    ("09/03", 3, 2, G8S, DFM),
-                    ("09/03", 3, 3, SNB, IBS),
-                    ("09/10", 4, 1, G8S, OJA),
-                    ("09/10", 4, 2, SNB, SOL),
-                    ("09/10", 4, 3, IBS, DFM),
-                    ("09/20", 5, 1, IBS, G8S),
-                    ("09/20", 5, 2, DFM, SOL),
-                    ("09/20", 5, 3, OJA, SNB),
-                    ("10/04", 6, 1, IBS, SOL),
-                    ("10/04", 6, 2, SNB, G8S),
-                    ("10/04", 6, 3, OJA, DFM),
-                    ("10/22", 7, 1, G8S, SOL),
-                    ("10/22", 7, 2, DFM, SNB),
-                    ("10/22", 7, 3, OJA, IBS),
-                    ("10/29", 8, 1, IBS, SNB),
-                    ("10/29", 8, 2, SOL, OJA),
-                    ("10/29", 8, 3, DFM, G8S),
-                    ("11/05", 9, 1, OJA, G8S),
-                    ("11/05", 9, 2, DFM, IBS),
-                    ("11/05", 9, 3, SOL, SNB),
-                    ("11/19", 10, 1, SNB, OJA),
-                    ("11/19", 10, 2, SOL, DFM),
-                    ("11/19", 10, 3, G8S, IBS),
-                ]
-            }
-            JP2024DivisionF => {
-                vec![
-                    ("08/20", 1, 1, RC, IXA),
-                    ("08/20", 1, 2, CAG, VAR),
-                    ("08/20", 1, 3, CR, FAV),
-                    ("08/30", 2, 1, VAR, RC),
-                    ("08/30", 2, 2, FAV, IXA),
-                    ("08/30", 2, 3, CR, CAG),
-                    ("09/06", 3, 1, IXA, CR),
-                    ("09/06", 3, 2, CAG, RC),
-                    ("09/06", 3, 3, VAR, FAV),
-                    ("09/18", 4, 1, CAG, IXA),
-                    ("09/18", 4, 2, VAR, CR),
-                    ("09/18", 4, 3, FAV, RC),
-                    ("10/01", 5, 1, FAV, CAG),
-                    ("10/01", 5, 2, RC, CR),
-                    ("10/01", 5, 3, IXA, VAR),
-                    ("10/08", 6, 1, FAV, CR),
-                    ("10/08", 6, 2, VAR, CAG),
-                    ("10/08", 6, 3, IXA, RC),
-                    ("10/25", 7, 1, CAG, CR),
-                    ("10/25", 7, 2, RC, VAR),
-                    ("10/25", 7, 3, IXA, FAV),
-                    ("11/01", 8, 1, FAV, VAR),
-                    ("11/01", 8, 2, CR, IXA),
-                    ("11/01", 8, 3, RC, CAG),
-                    ("11/15", 9, 1, IXA, CAG),
-                    ("11/15", 9, 2, RC, FAV),
-                    ("11/15", 9, 3, CR, VAR),
-                    ("11/22", 10, 1, VAR, IXA),
-                    ("11/22", 10, 2, CR, RC),
-                    ("11/22", 10, 3, CAG, FAV),
-                ]
-            }
+            JP2024DivisionS => vec![
+                ("08/16", 1, 1, DFM, OJA),
+                ("08/16", 1, 2, G8S, SNB),
+                ("08/16", 1, 3, SOL, IBS),
+                ("08/27", 2, 1, SNB, DFM),
+                ("08/27", 2, 2, IBS, OJA),
+                ("08/27", 2, 3, SOL, G8S),
+                ("09/03", 3, 1, OJA, SOL),
+                ("09/03", 3, 2, G8S, DFM),
+                ("09/03", 3, 3, SNB, IBS),
+                ("09/10", 4, 1, G8S, OJA),
+                ("09/10", 4, 2, SNB, SOL),
+                ("09/10", 4, 3, IBS, DFM),
+                ("09/20", 5, 1, IBS, G8S),
+                ("09/20", 5, 2, DFM, SOL),
+                ("09/20", 5, 3, OJA, SNB),
+                ("10/04", 6, 1, IBS, SOL),
+                ("10/04", 6, 2, SNB, G8S),
+                ("10/04", 6, 3, OJA, DFM),
+                ("10/22", 7, 1, G8S, SOL),
+                ("10/22", 7, 2, DFM, SNB),
+                ("10/22", 7, 3, OJA, IBS),
+                ("10/29", 8, 1, IBS, SNB),
+                ("10/29", 8, 2, SOL, OJA),
+                ("10/29", 8, 3, DFM, G8S),
+                ("11/05", 9, 1, OJA, G8S),
+                ("11/05", 9, 2, DFM, IBS),
+                ("11/05", 9, 3, SOL, SNB),
+                ("11/19", 10, 1, SNB, OJA),
+                ("11/19", 10, 2, SOL, DFM),
+                ("11/19", 10, 3, G8S, IBS),
+            ],
+
+            JP2024DivisionF => vec![
+                ("08/20", 1, 1, RC, IXA),
+                ("08/20", 1, 2, CAG, VAR),
+                ("08/20", 1, 3, CR, FAV),
+                ("08/30", 2, 1, VAR, RC),
+                ("08/30", 2, 2, FAV, IXA),
+                ("08/30", 2, 3, CR, CAG),
+                ("09/06", 3, 1, IXA, CR),
+                ("09/06", 3, 2, CAG, RC),
+                ("09/06", 3, 3, VAR, FAV),
+                ("09/18", 4, 1, CAG, IXA),
+                ("09/18", 4, 2, VAR, CR),
+                ("09/18", 4, 3, FAV, RC),
+                ("10/01", 5, 1, FAV, CAG),
+                ("10/01", 5, 2, RC, CR),
+                ("10/01", 5, 3, IXA, VAR),
+                ("10/08", 6, 1, FAV, CR),
+                ("10/08", 6, 2, VAR, CAG),
+                ("10/08", 6, 3, IXA, RC),
+                ("10/25", 7, 1, CAG, CR),
+                ("10/25", 7, 2, RC, VAR),
+                ("10/25", 7, 3, IXA, FAV),
+                ("11/01", 8, 1, FAV, VAR),
+                ("11/01", 8, 2, CR, IXA),
+                ("11/01", 8, 3, RC, CAG),
+                ("11/15", 9, 1, IXA, CAG),
+                ("11/15", 9, 2, RC, FAV),
+                ("11/15", 9, 3, CR, VAR),
+                ("11/22", 10, 1, VAR, IXA),
+                ("11/22", 10, 2, CR, RC),
+                ("11/22", 10, 3, CAG, FAV),
+            ],
+
+            JP2024AllDivision => vec![
+                ("08/16", 1, 1, DFM, OJA),
+                ("08/16", 1, 2, G8S, SNB),
+                ("08/16", 1, 3, SOL, IBS),
+                ("08/20", 1, 1, RC, IXA),
+                ("08/20", 1, 2, CAG, VAR),
+                ("08/20", 1, 3, CR, FAV),
+                ("08/27", 2, 1, SNB, DFM),
+                ("08/27", 2, 2, IBS, OJA),
+                ("08/27", 2, 3, SOL, G8S),
+                ("08/30", 2, 1, VAR, RC),
+                ("08/30", 2, 2, FAV, IXA),
+                ("08/30", 2, 3, CR, CAG),
+                ("09/03", 3, 1, OJA, SOL),
+                ("09/03", 3, 2, G8S, DFM),
+                ("09/03", 3, 3, SNB, IBS),
+                ("09/06", 3, 1, IXA, CR),
+                ("09/06", 3, 2, CAG, RC),
+                ("09/06", 3, 3, VAR, FAV),
+                ("09/10", 4, 1, G8S, OJA),
+                ("09/10", 4, 2, SNB, SOL),
+                ("09/10", 4, 3, IBS, DFM),
+                ("09/18", 4, 1, CAG, IXA),
+                ("09/18", 4, 2, VAR, CR),
+                ("09/18", 4, 3, FAV, RC),
+                ("09/20", 5, 1, IBS, G8S),
+                ("09/20", 5, 2, DFM, SOL),
+                ("09/20", 5, 3, OJA, SNB),
+                ("10/01", 5, 1, FAV, CAG),
+                ("10/01", 5, 2, RC, CR),
+                ("10/01", 5, 3, IXA, VAR),
+                ("10/04", 6, 1, IBS, SOL),
+                ("10/04", 6, 2, SNB, G8S),
+                ("10/04", 6, 3, OJA, DFM),
+                ("10/08", 6, 1, FAV, CR),
+                ("10/08", 6, 2, VAR, CAG),
+                ("10/08", 6, 3, IXA, RC),
+                ("10/22", 7, 1, G8S, SOL),
+                ("10/22", 7, 2, DFM, SNB),
+                ("10/22", 7, 3, OJA, IBS),
+                ("10/25", 7, 1, CAG, CR),
+                ("10/25", 7, 2, RC, VAR),
+                ("10/25", 7, 3, IXA, FAV),
+                ("10/29", 8, 1, IBS, SNB),
+                ("10/29", 8, 2, SOL, OJA),
+                ("10/29", 8, 3, DFM, G8S),
+                ("11/01", 8, 1, FAV, VAR),
+                ("11/01", 8, 2, CR, IXA),
+                ("11/01", 8, 3, RC, CAG),
+                ("11/05", 9, 1, OJA, G8S),
+                ("11/05", 9, 2, DFM, IBS),
+                ("11/05", 9, 3, SOL, SNB),
+                ("11/15", 9, 1, IXA, CAG),
+                ("11/15", 9, 2, RC, FAV),
+                ("11/15", 9, 3, CR, VAR),
+                ("11/19", 10, 1, SNB, OJA),
+                ("11/19", 10, 2, SOL, DFM),
+                ("11/19", 10, 3, G8S, IBS),
+                ("11/22", 10, 1, VAR, IXA),
+                ("11/22", 10, 2, CR, RC),
+                ("11/22", 10, 3, CAG, FAV),
+            ],
             _ => {
                 vec![]
             }
@@ -244,7 +433,8 @@ impl SflStage {
     }
     fn match_to_records(&self, sfl_match: &SflMatch) -> Vec<SflRecord> {
         match sfl_match.sfl_stage {
-            JP2024DivisionS | JP2024DivisionF => {
+            JP2024DivisionS | JP2024DivisionF | JP2024AllDivision | JP2024Playoff
+            | JP2024GrandFinal => {
                 GameType::get_games_by_stage(&sfl_match.sfl_stage)
                     .iter()
                     .map(|(set_number, game_type)| {
@@ -271,7 +461,7 @@ impl SflStage {
     // ランダム結果と実際結果が混じることがある
     pub fn correct_records(&self, records: &mut Vec<SflRecord>) {
         match self {
-            JP2024DivisionS | JP2024DivisionF => {
+            JP2024DivisionS | JP2024DivisionF | JP2024AllDivision => {
                 let van1 = records.get(0).unwrap().to_owned();
                 let van2 = records.get(1).unwrap().to_owned();
                 let van3 = records.get(2).unwrap().to_owned();
@@ -420,7 +610,104 @@ impl SflStage {
                     false
                 };
             }
+            JP2024Playoff => {}
             _ => {}
+        }
+    }
+    pub fn get_win_team(&self, records: &mut Vec<SflRecord>) -> (SflTeam, u32, u32) {
+        match self {
+            JP2024Playoff => {
+                let games = [
+                    (vec![0_usize, 1, 2], 1_u32),
+                    (vec![3, 4, 5], 1),
+                    (vec![6, 7, 8, 9, 10], 2),
+                    (vec![11, 12, 13], 1),
+                    (vec![14, 15, 16], 1),
+                    (vec![17, 18, 19, 20, 21], 2),
+                    (vec![22, 23, 24], 1),
+                    (vec![25, 26, 27], 1),
+                    (vec![28, 29, 30, 31, 32], 2),
+                    (vec![33, 34, 35], 1),
+                ];
+                let mut team_point = 0_u32;
+                let mut opponent_team_point = 0_u32;
+                for (game, p) in games.iter() {
+                    let won = game
+                        .iter()
+                        .filter(|index| records[**index].win_flag)
+                        .collect::<Vec<_>>()
+                        .len() as u32;
+                    if won > *p {
+                        team_point += *p * 10;
+                        if team_point >= 70 {
+                            return (
+                                records[0].sfl_match.team.to_owned(),
+                                team_point,
+                                opponent_team_point,
+                            );
+                        }
+                    } else {
+                        opponent_team_point += *p * 10;
+                        if opponent_team_point >= 70 {
+                            return (
+                                records[0].sfl_match.opponent_team.to_owned(),
+                                team_point,
+                                opponent_team_point,
+                            );
+                        }
+                    }
+                }
+                panic!()
+            }
+            JP2024GrandFinal => {
+                let games = [
+                    (vec![0_usize, 1, 2], 1_u32),
+                    (vec![3, 4, 5], 1),
+                    (vec![6, 7, 8, 9, 10], 2),
+                    (vec![11, 12, 13], 1),
+                    (vec![14, 15, 16], 1),
+                    (vec![17, 18, 19, 20, 21], 2),
+                    (vec![22, 23, 24], 1),
+                    (vec![25, 26, 27], 1),
+                    (vec![28, 29, 30, 31, 32], 2),
+                    (vec![33, 34, 35], 1),
+                    (vec![36, 37, 38], 1),
+                    (vec![39, 40, 41, 42, 43], 2),
+                    (vec![44, 45, 46], 1),
+                ];
+                let mut team_point = 0_u32;
+                let mut opponent_team_point = 0_u32;
+                for (game, p) in games.iter() {
+                    let won = game
+                        .iter()
+                        .filter(|index| records[**index].win_flag)
+                        .collect::<Vec<_>>()
+                        .len() as u32;
+                    if won > *p {
+                        team_point += *p * 10;
+                        if team_point >= 90 {
+                            return (
+                                records[0].sfl_match.team.to_owned(),
+                                team_point,
+                                opponent_team_point,
+                            );
+                        }
+                    } else {
+                        opponent_team_point += *p * 10;
+                        if opponent_team_point >= 90 {
+                            return (
+                                records[0].sfl_match.opponent_team.to_owned(),
+                                team_point,
+                                opponent_team_point,
+                            );
+                        }
+                    }
+                }
+                panic!()
+            }
+            _ => {
+                panic!()
+            }
         }
     }
 }
@@ -454,6 +741,24 @@ pub enum SflTeam {
     FAV,
 }
 
+impl SflTeam {
+    pub fn get_index(&self) -> usize {
+        match self {
+            G8S => 0,
+            DFM => 1,
+            SOL => 2,
+            IBS => 3,
+            OJA => 4,
+            SNB => 5,
+            CR => 6,
+            CAG => 7,
+            IXA => 8,
+            RC => 9,
+            VAR => 10,
+            FAV => 11,
+        }
+    }
+}
 impl fmt::Display for SflTeam {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}", self)
@@ -565,6 +870,53 @@ pub fn create_key_function_and_init_rating_map(
             (home_away_game_type_function, rating_map)
         }
     }
+}
+
+pub fn create_key_function_and_init_ratings(
+    setting: SflRatingSetting,
+    teams: Vec<SflTeam>,
+) -> (fn(&SflRecord) -> (usize, usize), Vec<f64>) {
+    let max_team_index = teams.iter().map(|team| team.get_index()).max().unwrap();
+    let mut ratings: Vec<f64> = vec![1500_f64; (max_team_index + 1) * 4];
+    match setting {
+        SflRatingSetting::TeamOnly => {
+            todo!()
+        }
+        SflRatingSetting::HomeAway => {
+            todo!()
+        }
+        SflRatingSetting::GameType => {
+            todo!()
+        }
+        SflRatingSetting::HomeAwayGameType => {
+            fn home_away_game_type_function(record: &SflRecord) -> (usize, usize) {
+                let team_index = record.sfl_match.team.get_index() * 4;
+                let opponent_team_index = record.sfl_match.opponent_team.get_index() * 4;
+                let mut team_mod_index = 0_usize;
+                let mut opponent_team_mod_index = 0_usize;
+                if record.sfl_match.is_home {
+                    team_mod_index += 1;
+                } else {
+                    opponent_team_mod_index += 1;
+                }
+                if record.game_type.is_leader() {
+                    team_mod_index += 2;
+                    opponent_team_mod_index += 2;
+                }
+                (
+                    team_index + team_mod_index,
+                    opponent_team_index + opponent_team_mod_index,
+                )
+            }
+            (home_away_game_type_function, ratings)
+        }
+    }
+}
+
+struct SflSimulationResult {}
+
+pub fn simulate(records: Vec<SflRecord>) -> SflSimulationResult {
+    SflSimulationResult {}
 }
 
 pub fn get_place_sim_count(

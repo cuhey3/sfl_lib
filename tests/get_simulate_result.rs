@@ -10,6 +10,6 @@ wasm_bindgen_test_configure!(run_in_node_experimental);
 
 #[wasm_bindgen_test]
 fn pass() {
-    greet(js_sys::Array::new(), js_sys::Array::new(), true);
+    greet(js_sys::Array::new(), true);
     assert_eq!(1 + 1, 2);
 }

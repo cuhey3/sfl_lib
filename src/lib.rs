@@ -1,13 +1,14 @@
 mod sfl;
 mod utils;
-use crate::sfl::SflStage::{JP2024DivisionF, JP2024DivisionS};
+use crate::sfl::SflStage::{
+    JP2024AllDivision, JP2024DivisionF, JP2024DivisionS, JP2024GrandFinal, JP2024Playoff,
+};
 use crate::sfl::{
-    create_key_function_and_init_rating_map, get_win_percentage, update_rating, SflRatingSetting,
+    create_key_function_and_init_ratings, get_win_percentage, update_rating, SflRatingSetting,
     SflRecord, SflStage, SflTeam,
 };
 use js_sys;
 use rand::prelude::*;
-use std::collections::HashMap;
 use std::ops::Deref;
 use wasm_bindgen::prelude::*;
 use web_sys;
@@ -59,93 +60,56 @@ pub fn get_division_matches() -> JsValue {
 }
 
 #[wasm_bindgen]
-pub fn greet(
-    division_s_raw_results: js_sys::Array,
-    division_f_raw_results: js_sys::Array,
-    enable_rate: bool,
-) -> JsValue {
-    let mut division_s_results: Vec<Vec<bool>> = vec![];
-    for parent_array in division_s_raw_results.iter() {
-        let match_result: Vec<bool> = js_sys::Array::from(&parent_array)
-            .iter()
-            .map(|v| v.as_bool().unwrap())
-            .collect();
-        division_s_results.push(match_result);
-    }
-    let mut division_f_results: Vec<Vec<bool>> = vec![];
-    for parent_array in division_f_raw_results.iter() {
-        let match_result: Vec<bool> = js_sys::Array::from(&parent_array)
-            .iter()
-            .map(|v| v.as_bool().unwrap())
-            .collect();
-        division_f_results.push(match_result);
-    }
-    console_log!("{:?}", division_s_results.to_owned());
-    console_log!("{:?}", division_f_results.to_owned());
-    let simulate_results =
-        get_simulate_result(SflStage::JP2024DivisionS, enable_rate, division_s_results);
-    let simulate_results2 =
-        get_simulate_result(SflStage::JP2024DivisionF, enable_rate, division_f_results);
+pub fn greet(division_raw_results: js_sys::Array, enable_rate: bool) -> JsValue {
+    let mut division_results: Vec<Vec<bool>> = vec![];
     let mut results = js_sys::Array::new();
-    let mut array = js_sys::Array::new();
-
-    for (team, (counts, points)) in simulate_results {
-        let mut row = js_sys::Array::new();
-        let value = JsValue::from(team.to_string());
-        row.push(&value);
-        for c in counts.iter() {
-            row.push(&JsValue::from(*c));
-        }
-        let (
-            point_actual,
-            point_prediction,
-            battle_actual,
-            battle_prediction,
-            van_mid_away,
-            van_mid_home,
-            general_extra_away,
-            general_extra_home,
-        ) = points;
-        row.push(&JsValue::from(point_actual));
-        row.push(&JsValue::from(point_prediction));
-        row.push(&JsValue::from(battle_actual));
-        row.push(&JsValue::from(battle_prediction));
-        row.push(&JsValue::from(van_mid_away));
-        row.push(&JsValue::from(van_mid_home));
-        row.push(&JsValue::from(general_extra_away));
-        row.push(&JsValue::from(general_extra_home));
-        array.push(&JsValue::from(row));
+    for parent_array in division_raw_results.iter() {
+        let match_result: Vec<bool> = js_sys::Array::from(&parent_array)
+            .iter()
+            .map(|v| v.as_bool().unwrap())
+            .collect();
+        division_results.push(match_result);
     }
-    let mut array2 = js_sys::Array::new();
-    for (team, (counts, points)) in simulate_results2 {
-        let mut row = js_sys::Array::new();
-        let value = JsValue::from(team.to_string());
-        row.push(&value);
-        for c in counts.iter() {
-            row.push(&JsValue::from(*c));
+    console_log!("{:?}", division_results.to_owned());
+    let simulate_results =
+        get_simulate_result(JP2024AllDivision, enable_rate, division_results.to_owned());
+    for division in [JP2024DivisionS, JP2024DivisionF].iter() {
+        let mut array = js_sys::Array::new();
+        for team in division.get_teams().iter() {
+            let team_index = team.get_index();
+            let (counts, points) = simulate_results[team_index].to_owned();
+            let mut row = js_sys::Array::new();
+            let value = JsValue::from(team.to_string());
+            row.push(&value);
+            for c in counts.iter().enumerate() {
+                // TODO 後から追加したフィールドを読みやすくする
+                if c.0 < 8 {
+                    row.push(&JsValue::from(*c.1));
+                }
+            }
+            let (
+                battle_actual,
+                battle_prediction,
+                van_mid_away,
+                van_mid_home,
+                general_extra_away,
+                general_extra_home,
+            ) = points;
+            row.push(&JsValue::from(battle_actual));
+            row.push(&JsValue::from(battle_prediction));
+            row.push(&JsValue::from(van_mid_away));
+            row.push(&JsValue::from(van_mid_home));
+            row.push(&JsValue::from(general_extra_away));
+            row.push(&JsValue::from(general_extra_home));
+            // TODO 後から追加したフィールドを読みやすくする
+            row.push(&JsValue::from(counts[8]));
+            row.push(&JsValue::from(counts[9]));
+            row.push(&JsValue::from(counts[10]));
+            row.push(&JsValue::from(counts[11]));
+            array.push(&JsValue::from(row));
         }
-        let (
-            point_actual,
-            point_prediction,
-            battle_actual,
-            battle_prediction,
-            van_mid_away,
-            van_mid_home,
-            general_extra_away,
-            general_extra_home,
-        ) = points;
-        row.push(&JsValue::from(point_actual));
-        row.push(&JsValue::from(point_prediction));
-        row.push(&JsValue::from(battle_actual));
-        row.push(&JsValue::from(battle_prediction));
-        row.push(&JsValue::from(van_mid_away));
-        row.push(&JsValue::from(van_mid_home));
-        row.push(&JsValue::from(general_extra_away));
-        row.push(&JsValue::from(general_extra_home));
-        array2.push(&JsValue::from(row));
+        results.push(&JsValue::from(array));
     }
-    results.push(&JsValue::from(array));
-    results.push(&JsValue::from(array2));
     JsValue::from(results)
 }
 
@@ -153,12 +117,13 @@ fn get_simulate_result(
     sfl_stage: SflStage,
     enable_rate: bool,
     played_match_results: Vec<Vec<bool>>,
-) -> HashMap<SflTeam, (Vec<u32>, (u32, u32, i32, i32, f64, f64, f64, f64))> {
+) -> Vec<(Vec<u32>, (i32, i32, f64, f64, f64, f64))> {
     let seed: [u8; 32] = [5; 32];
     let mut rng: StdRng = rand::SeedableRng::from_seed(seed);
-    let sfl_rate_setting = SflRatingSetting::HomeAwayGameType;
-    let (rate_key_function, mut rating_map) =
-        create_key_function_and_init_rating_map(sfl_rate_setting, sfl_stage.get_teams());
+    let (rate_index_function, mut ratings) = create_key_function_and_init_ratings(
+        SflRatingSetting::HomeAwayGameType,
+        sfl_stage.get_teams(),
+    );
     // ステージに応じた初期状態のレコードを生成
     let mut initial_record_matches: Vec<Vec<SflRecord>> = sfl_stage.get_initial_records();
 
@@ -194,28 +159,36 @@ fn get_simulate_result(
         // 決着局にポイントを付与する
         sfl_stage.correct_records(records);
 
-        // レーティング反映開始
+        // レーティング計算開始
         for record in records.into_iter() {
             // 無効なセットおよび予想のセットは無視
             // ただし1マッチ最大12セットのうち、途中のセットが無効になることはあるので、breakはしない
             if !record.is_valid || record.is_prediction {
                 continue;
             }
-            let (team_key, opponent_team_key) = rate_key_function(record);
-            let team_rating = rating_map.get(&team_key).unwrap();
-            let opponent_team_rating = rating_map.get(&opponent_team_key).unwrap();
+            let (team_index, opponent_team_index) = rate_index_function(record);
+            let team_rating = ratings.get(team_index).unwrap();
+            let opponent_team_rating = ratings.get(opponent_team_index).unwrap();
             let (updated_rating, updated_opponent_rating) =
                 update_rating(team_rating, opponent_team_rating, &record.win_flag);
-            rating_map.insert(team_key, updated_rating);
-            rating_map.insert(opponent_team_key, updated_opponent_rating);
+            ratings[team_index] = updated_rating;
+            ratings[opponent_team_index] = updated_opponent_rating;
         }
     }
 
     // 順位の集計map
-    let mut place_sim_count = sfl::get_place_sim_count(sfl_stage);
+    let max_team_index = sfl_stage
+        .get_teams()
+        .iter()
+        .map(|team| team.get_index())
+        .max()
+        .unwrap();
+    let mut place_sim_counts = vec![vec![0_u32; 12]; max_team_index + 1];
+    let mut place_sim_battles = vec![vec![0_i32; 2]; max_team_index + 1];
 
     // チームごとに現在ポイントと現在バトル得失を集計
     for team in sfl_stage.get_teams() {
+        let team_index = team.get_index();
         // チームが含まれる有効なレコードのみ抽出
         let records: Vec<&SflRecord> = initial_record_matches
             .iter()
@@ -255,15 +228,20 @@ fn get_simulate_result(
                 }
             })
             .sum();
-        let (counts, mut points) = place_sim_count.get(&team).unwrap();
-        points.0 = point;
-        points.2 = battle;
-        place_sim_count.insert(team.to_owned(), (counts.to_owned(), points));
+        place_sim_counts[team_index][6] = point;
+        place_sim_battles[team_index][0] = battle;
     }
+
+    let max_team_index = sfl_stage
+        .get_teams()
+        .iter()
+        .map(|team| team.get_index())
+        .max()
+        .unwrap();
 
     // 10000回試行して小数点第一位まで表示
     for x in 0..10000 {
-        // ランダムに結果をセット（レーティング処理を追加するならここ）
+        // レーティングに基づきランダムに結果をセット
         for records in initial_record_matches.iter_mut() {
             for record in records.iter_mut() {
                 // 前の試行でポイントが入っているのでリセットする
@@ -272,9 +250,9 @@ fn get_simulate_result(
                 if !record.is_prediction {
                     continue;
                 }
-                let (ref team_key, ref opponent_team_key) = rate_key_function(record);
-                let team_rating = rating_map.get(team_key).unwrap();
-                let opponent_team_rating = rating_map.get(opponent_team_key).unwrap();
+                let (team_index, opponent_team_index) = rate_index_function(record);
+                let team_rating = ratings.get(team_index).unwrap();
+                let opponent_team_rating = ratings.get(opponent_team_index).unwrap();
                 if enable_rate {
                     let (team_win_percentage, _) =
                         get_win_percentage(*team_rating, *opponent_team_rating);
@@ -287,25 +265,23 @@ fn get_simulate_result(
 
             // 予想分の補正処理
             sfl_stage.correct_records(records);
-            let sum: u32 = records.iter().map(|r| r.point).sum();
-            // ポイントのセットがうまくいっていないと1試合のポイントが45を超える
-            if sum > 45 || sum < 40 {
-                console_log!("{:?}", sum);
-                console_log!("{:?}", records);
-                console_log!("{:?}", x);
-                panic!()
-            }
+            // let sum: u32 = records.iter().map(|r| r.point).sum();
+            // // ポイントのセットがうまくいっていないと1試合のポイントが45を超える
+            // if sum > 45 || sum < 40 {
+            //     console_log!("{:?}", sum);
+            //     console_log!("{:?}", records);
+            //     console_log!("{:?}", x);
+            //     panic!()
+            // }
         }
 
         // 一次元vectorに変更
         let sfl_records: Vec<&SflRecord> = initial_record_matches.iter().flat_map(|x| x).collect();
 
-        // この試行におけるポイント、バトル得失を集計するmap
-        let mut point_map: HashMap<SflTeam, (u32, i32)> = HashMap::new();
+        // この試行におけるポイント、バトル得失を集計するvector
         // チームの分だけ初期化
-        for team in sfl_stage.get_teams().into_iter() {
-            point_map.insert(team, (0, 0));
-        }
+        let mut point_count = vec![0_u32; max_team_index + 1];
+        let mut battle_count = vec![0_i32; max_team_index + 1];
 
         // レコードごとにポイント集計開始
         for record in sfl_records.iter() {
@@ -313,90 +289,160 @@ fn get_simulate_result(
             if !record.is_valid {
                 continue;
             }
-            let team = record.sfl_match.team.to_owned();
-            let opponent_team = record.sfl_match.opponent_team.to_owned();
-            let (mut team_point, mut team_battle) = point_map.get(&team).unwrap();
-            let (mut opponent_team_point, mut opponent_team_battle) =
-                point_map.get(&opponent_team).unwrap();
+            let team_index = record.sfl_match.team.get_index();
+            let opponent_team_index = record.sfl_match.opponent_team.get_index();
             if record.win_flag {
-                team_point += record.point;
-                team_battle += 1;
-                opponent_team_battle -= 1;
+                point_count[team_index] += record.point;
+                battle_count[team_index] += 1;
+                battle_count[opponent_team_index] -= 1;
             } else {
-                opponent_team_point += record.point;
-                team_battle -= 1;
-                opponent_team_battle += 1;
+                point_count[opponent_team_index] += record.point;
+                battle_count[team_index] -= 1;
+                battle_count[opponent_team_index] += 1;
             }
-            point_map.insert(team, (team_point, team_battle));
-            point_map.insert(opponent_team, (opponent_team_point, opponent_team_battle));
+        }
+        let mut playoff_team: Vec<Vec<(SflTeam, u32, i32)>> = vec![vec![], vec![]];
+        for (n, stage) in [JP2024DivisionS, JP2024DivisionF].iter().enumerate() {
+            // ポイントとバトルでソートして順位を算出
+            let mut sortable: Vec<(usize, u32, i32, SflTeam)> = stage
+                .get_teams()
+                .iter()
+                .map(|team| {
+                    let team_index = team.get_index();
+                    let point = point_count[team_index];
+                    let battle = battle_count[team_index];
+                    (team_index, point, battle, team.to_owned())
+                })
+                .collect();
+            sortable.sort_by(
+                |(a_team, a_point, a_battle, ..), (b_team, b_point, b_battle, ..)| {
+                    b_point
+                        .cmp(&a_point)
+                        .then(b_battle.cmp(&a_battle))
+                        .then(b_team.cmp(a_team))
+                },
+            );
+            // 順位のカウントアップとポイント・バトルの合計更新
+            for nth in 0..6 {
+                let (team_index, point, battle, team) = sortable.get(nth).unwrap().to_owned();
+                place_sim_counts[team_index][nth] += 1;
+                place_sim_counts[team_index][7] += point;
+                place_sim_battles[team_index][1] += battle;
+                if nth < 3 {
+                    playoff_team[n].push((team, point, battle));
+                }
+            }
+        }
+        for n in 0..2_usize {
+            for m in 0..2_usize {
+                let team_info = &playoff_team[n][2 - m];
+                let opponent_team_info = &playoff_team[n][1 - m];
+                let records =
+                    &mut JP2024Playoff.get_playoff_records(&team_info.0, &opponent_team_info.0);
+                for record in records.iter_mut() {
+                    let (team_index, opponent_team_index) = rate_index_function(record);
+                    let team_rating = ratings.get(team_index).unwrap();
+                    let opponent_team_rating = ratings.get(opponent_team_index).unwrap();
+                    if enable_rate {
+                        let (team_win_percentage, _) =
+                            get_win_percentage(*team_rating, *opponent_team_rating);
+                        record.win_flag = rng.gen_bool(team_win_percentage);
+                    } else {
+                        record.win_flag = rng.random();
+                    }
+                    record.is_valid = true;
+                }
+
+                // 予想分の簡易得点処理
+                let (win_team, point, opponent_point) = JP2024Playoff.get_win_team(records);
+                if m == 0 {
+                    if team_info.0 == win_team {
+                        // プレイオフ5位
+                        place_sim_counts[opponent_team_info.0.get_index()][11] += 1;
+                        playoff_team[n] = vec![playoff_team[n][0].to_owned(), team_info.to_owned()];
+                    } else {
+                        // プレイオフ5位
+                        place_sim_counts[team_info.0.get_index()][11] += 1;
+                        playoff_team[n] =
+                            vec![playoff_team[n][0].to_owned(), opponent_team_info.to_owned()];
+                    }
+                } else {
+                    if team_info.0 == win_team {
+                        // プレイオフ3位
+                        place_sim_counts[opponent_team_info.0.get_index()][10] += 1;
+                        playoff_team[n] = vec![team_info.to_owned()];
+                    } else {
+                        // プレイオフ3位
+                        place_sim_counts[team_info.0.get_index()][10] += 1;
+                        playoff_team[n] = vec![opponent_team_info.to_owned()];
+                    }
+                }
+            }
         }
 
-        let mut sortable: Vec<(SflTeam, u32, i32)> = vec![];
-        for (team, (point, battle)) in point_map.iter() {
-            let (counts, mut points) = place_sim_count.get(team).unwrap();
-            points.1 += point;
-            points.3 += battle;
-            place_sim_count.insert(team.to_owned(), (counts.to_owned(), points));
-            sortable.push(((*team).to_owned(), *point, *battle));
+        // HOME / AWAY の決定
+        // ポイント > バトル得失
+        let mut gf_team_info = &playoff_team[0][0];
+        let mut gf_opponent_team_info = &playoff_team[1][0];
+
+        if gf_team_info.1 == gf_opponent_team_info.1 {
+            if gf_team_info.2 > gf_opponent_team_info.2 {
+                gf_team_info = &playoff_team[1][0];
+                gf_opponent_team_info = &playoff_team[0][0];
+            }
+        } else if gf_team_info.1 > gf_opponent_team_info.1 {
+            gf_team_info = &playoff_team[1][0];
+            gf_opponent_team_info = &playoff_team[0][0];
         }
-        sortable.sort_by(|(a_team, a_point, a_battle), (b_team, b_point, b_battle)| {
-            b_point
-                .cmp(&a_point)
-                .then(b_battle.cmp(&a_battle))
-                .then((b_team.to_owned() as i32).cmp(&(a_team.to_owned() as i32)))
-        });
-        for n in 0..6 {
-            let (team, _, _) = sortable.get(n).unwrap();
-            let (count, _) = place_sim_count.get_mut(team).unwrap();
-            let new_val = count.get(n).unwrap() + 1;
-            count[n] = new_val;
+        // グランドファイナル処理ここから
+        let records = &mut JP2024GrandFinal
+            .get_grand_final_records(&gf_team_info.0, &gf_opponent_team_info.0);
+        for record in records.iter_mut() {
+            let (team_index, opponent_team_index) = rate_index_function(record);
+            let team_rating = ratings.get(team_index).unwrap();
+            let opponent_team_rating = ratings.get(opponent_team_index).unwrap();
+            if enable_rate {
+                let (team_win_percentage, _) =
+                    get_win_percentage(*team_rating, *opponent_team_rating);
+                record.win_flag = rng.gen_bool(team_win_percentage);
+            } else {
+                record.win_flag = rng.random();
+            }
+            record.is_valid = true;
+        }
+        let (win_team, ..) = JP2024GrandFinal.get_win_team(records);
+        // 優勝
+        place_sim_counts[win_team.get_index()][8] += 1;
+        if playoff_team[0][0].0 == win_team {
+            // 準優勝
+            place_sim_counts[playoff_team[1][0].0.get_index()][9] += 1;
+        } else {
+            // 準優勝
+            place_sim_counts[playoff_team[0][0].0.get_index()][9] += 1;
         }
     }
-    for team in sfl_stage.get_teams().iter() {
-        let places_text = place_sim_count
-            .get(team)
-            .unwrap()
-            .0
-            .iter()
-            .map(|num| num.to_string())
-            .collect::<Vec<String>>()
-            .join("\t");
-        // console_log!("{:?}\t{}", team, places_text);
-    }
-    // console_log!("\n");
-    // console_log!("TEAM\tMMAW\tMMHM\tLDAW\tLDHM");
-    for team in sfl_stage.get_teams().iter() {
-        let rating_text = [100_u8, 101_u8, 110_u8, 111_u8]
-            .into_iter()
-            .map(|n| {
-                rating_map
-                    .get(&(team.to_owned(), *n))
-                    .unwrap()
-                    .round()
-                    .to_string()
-            })
-            .collect::<Vec<String>>()
-            .join("\t");
-        // console_log!("{:?}\t{}", team, rating_text);
-    }
-    // console_log!("{:?}", place_sim_count);
-    let mut result_map: HashMap<SflTeam, (Vec<u32>, (u32, u32, i32, i32, f64, f64, f64, f64))> =
-        HashMap::new();
+    let mut results: Vec<(Vec<u32>, (i32, i32, f64, f64, f64, f64))> =
+        vec![(vec![], (0, 0, 0.0, 0.0, 0.0, 0.0)); max_team_index + 1];
     for team in sfl_stage.get_teams() {
-        let (counts, points) = place_sim_count.get(&team).unwrap();
-        let vec: Vec<f64> = [100_u8, 101_u8, 110_u8, 111_u8]
-            .into_iter()
-            .map(|n| rating_map.get(&(team.to_owned(), *n)).unwrap().to_owned())
+        let team_index = team.get_index();
+        let team_count = &place_sim_counts[team_index];
+        let team_battle = &place_sim_battles[team_index];
+        let vec: Vec<f64> = [0, 1, 2, 3]
+            .iter()
+            .map(|n| ratings.get(team_index * 4 + n).unwrap().to_owned())
             .collect();
-        result_map.insert(
-            team,
+        results[team.get_index()] = (
+            team_count.to_owned(),
             (
-                counts.to_owned(),
-                (
-                    points.0, points.1, points.2, points.3, vec[0], vec[1], vec[2], vec[3],
-                ),
+                team_battle[0],
+                team_battle[1],
+                vec[0],
+                vec[1],
+                vec[2],
+                vec[3],
             ),
         );
     }
-    result_map
+    console_log!("{:?}", results);
+    results
 }
