@@ -71,7 +71,7 @@ pub fn greet(division_raw_results: js_sys::Array, enable_rate: bool) -> JsValue 
         division_results.push(match_result);
     }
     console_log!("{:?}", division_results.to_owned());
-    let simulate_results =
+    let (simulate_results, match_sims) =
         get_simulate_result(JP2024AllDivision, enable_rate, division_results.to_owned());
     for division in [JP2024DivisionS, JP2024DivisionF].iter() {
         let mut array = js_sys::Array::new();
@@ -110,6 +110,15 @@ pub fn greet(division_raw_results: js_sys::Array, enable_rate: bool) -> JsValue 
         }
         results.push(&JsValue::from(array));
     }
+    let mut match_array = js_sys::Array::new();
+    for match_sim in match_sims.iter() {
+        let mut row = js_sys::Array::new();
+        for value in match_sim.iter() {
+            row.push(&JsValue::from(*value));
+        }
+        match_array.push(&JsValue::from(row));
+    }
+    results.push(&JsValue::from(match_array));
     JsValue::from(results)
 }
 
@@ -117,7 +126,10 @@ fn get_simulate_result(
     sfl_stage: SflStage,
     enable_rate: bool,
     played_match_results: Vec<Vec<bool>>,
-) -> Vec<(Vec<u32>, (i32, i32, f64, f64, f64, f64))> {
+) -> (
+    Vec<(Vec<u32>, (i32, i32, f64, f64, f64, f64))>,
+    Vec<Vec<u32>>,
+) {
     let seed: [u8; 32] = [5; 32];
     let mut rng: StdRng = rand::SeedableRng::from_seed(seed);
     let (rate_index_function, mut ratings) = create_key_function_and_init_ratings(
@@ -185,6 +197,7 @@ fn get_simulate_result(
         .unwrap();
     let mut place_sim_counts = vec![vec![0_u32; 12]; max_team_index + 1];
     let mut place_sim_battles = vec![vec![0_i32; 2]; max_team_index + 1];
+    let mut match_point_sims = vec![vec![0_u32; 4]; sfl_stage.get_matches().len()];
 
     // チームごとに現在ポイントと現在バトル得失を集計
     for team in sfl_stage.get_teams() {
@@ -240,7 +253,7 @@ fn get_simulate_result(
         .unwrap();
 
     // 10000回試行して小数点第一位まで表示
-    for x in 0..10000 {
+    for _ in 0..10000 {
         // レーティングに基づきランダムに結果をセット
         for records in initial_record_matches.iter_mut() {
             for record in records.iter_mut() {
@@ -275,6 +288,35 @@ fn get_simulate_result(
             // }
         }
 
+        for (index, sfl_match) in initial_record_matches.iter().enumerate() {
+            let mut van_away_point = 0_u32;
+            let mut van_home_point = 0_u32;
+            let mut general_away_point = 0_u32;
+            let mut general_home_point = 0_u32;
+            for record in sfl_match {
+                if !record.is_valid || record.point == 0 {
+                    continue;
+                }
+                // is_home = false の前提でコードが書かれている…
+                if record.win_flag {
+                    if record.game_type.is_leader() {
+                        general_away_point += record.point;
+                    } else {
+                        van_away_point += record.point;
+                    }
+                } else {
+                    if record.game_type.is_leader() {
+                        general_home_point += record.point;
+                    } else {
+                        van_home_point += record.point;
+                    }
+                }
+            }
+            match_point_sims[index][0] += van_away_point;
+            match_point_sims[index][1] += van_home_point;
+            match_point_sims[index][2] += general_away_point;
+            match_point_sims[index][3] += general_home_point;
+        }
         // 一次元vectorに変更
         let sfl_records: Vec<&SflRecord> = initial_record_matches.iter().flat_map(|x| x).collect();
 
@@ -444,5 +486,6 @@ fn get_simulate_result(
         );
     }
     console_log!("{:?}", results);
-    results
+    console_log!("{:?}", match_point_sims);
+    (results, match_point_sims)
 }

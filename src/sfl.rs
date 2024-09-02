@@ -106,7 +106,7 @@ impl GameType {
             PlayoffExtra => 10,
         }
     }
-    fn is_leader(&self) -> bool {
+    pub fn is_leader(&self) -> bool {
         match self {
             VAN | MID => false,
             GENERAL | EXTRA | PlayoffExtra => true,
