@@ -136,6 +136,7 @@ fn get_simulate_result(
         SflRatingSetting::HomeAwayGameType,
         sfl_stage.get_teams(),
     );
+    let mut rng_called_count = 0;
     // ステージに応じた初期状態のレコードを生成
     let mut initial_record_matches: Vec<Vec<SflRecord>> = sfl_stage.get_initial_records();
 
@@ -261,6 +262,12 @@ fn get_simulate_result(
                 record.point = 0;
                 // すでに行われた結果では is_prediction: false となっているので continue
                 if !record.is_prediction {
+                    // 乱数を消費して影響を減らす
+                    let _: bool = if enable_rate {
+                        rng.gen_bool(0.5_f64)
+                    } else {
+                        rng.random()
+                    };
                     continue;
                 }
                 let (team_index, opponent_team_index) = rate_index_function(record);
