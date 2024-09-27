@@ -5,12 +5,14 @@ use crate::sfl::SflStage::{
 use crate::sfl::SflTeam::*;
 use std::cmp::PartialEq;
 use std::collections::HashMap;
-use std::fmt;
+use wasm_bindgen::prelude::wasm_bindgen;
 
 const K: f64 = 16_f64;
 
 #[derive(Clone, Debug)]
+#[wasm_bindgen]
 pub struct SflRecord {
+    #[wasm_bindgen(skip)]
     pub sfl_match: SflMatch,
     pub set_number: u32,
     pub win_flag: bool,
@@ -25,69 +27,8 @@ pub struct SflRecord {
     pub is_prediction: bool,
 }
 
-impl SflRecord {
-    // pub fn random_result(sfl_match: &SflMatch, rng: &mut StdRng) -> SflRecord {
-    //     let required_battle = sfl_match.match_type.get_required_battle();
-    //     let mut win_count = 0_u32;
-    //     let mut lose_count = 0_u32;
-    //     while win_count < required_battle && lose_count < required_battle {
-    //         if rng.random() {
-    //             win_count = win_count + 1;
-    //         } else {
-    //             lose_count = lose_count + 1;
-    //         }
-    //     }
-    //     SflRecord {
-    //         sfl_match: sfl_match.to_owned(),
-    //         set: 0,
-    //         win_count,
-    //         lose_count,
-    //         win_flag: win_count > lose_count,
-    //         game_type: sfl_match.match_type.to_owned(),
-    //         point: sfl_match.match_type.get_point(),
-    //         is_valid: false,
-    //         is_prediction: false,
-    //     }
-    // }
-    // pub fn random_extra_result(sfl_match: &SflMatch, rng: &mut StdRng) -> SflRecord {
-    //     let win_flag: bool = rng.random();
-    //     SflRecord {
-    //         sfl_match: SflMatch {
-    //             section: sfl_match.section,
-    //             branch: sfl_match.branch,
-    //             sfl_stage: sfl_match.sfl_stage.to_owned(),
-    //             team: sfl_match.team.to_owned(),
-    //             opponent_team: sfl_match.opponent_team.to_owned(),
-    //             is_home: sfl_match.is_home,
-    //             match_type: EXTRA,
-    //         },
-    //         set: 0,
-    //         win_count: if win_flag { 1 } else { 0 },
-    //         lose_count: if win_flag { 0 } else { 1 },
-    //         win_flag,
-    //         point: EXTRA.get_point(),
-    //         game_type: EXTRA,
-    //         is_valid: false,
-    //         is_prediction: false,
-    //     }
-    // }
-    // pub fn update_record_by_simple_result(&self, win_flag: bool, is_valid: bool) -> SflRecord {
-    //     let SflRecord { sfl_match, set, game_type, .. } = self.to_owned();
-    //     SflRecord {
-    //         sfl_match,
-    //         set,
-    //         win_count: if win_flag { 1 } else { 0 },
-    //         lose_count: if win_flag { 0 } else { 1 },
-    //         win_flag,
-    //         point: 0,
-    //         game_type,
-    //         is_valid,
-    //         is_prediction: false,
-    //     }
-    // }
-}
-
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug)]
+#[wasm_bindgen]
 pub enum GameType {
     VAN,
     MID,
@@ -215,12 +156,12 @@ impl GameType {
                 (2, PlayoffExtra),
                 (3, PlayoffExtra),
             ],
-            _ => vec![],
         }
     }
 }
 
 #[derive(Clone, Copy, Debug)]
+#[wasm_bindgen]
 pub enum SflStage {
     JP2024DivisionS,
     JP2024DivisionF,
@@ -237,6 +178,14 @@ impl SflStage {
             JP2024AllDivision => vec![G8S, DFM, SOL, IBS, OJA, SNB, CR, CAG, IXA, RC, VAR, FAV],
             _ => vec![],
         }
+    }
+
+    pub fn get_max_team_index(&self) -> usize {
+        self.get_teams()
+            .iter()
+            .map(|team| team.get_index())
+            .max()
+            .unwrap()
     }
 
     pub fn get_initial_records(&self) -> Vec<Vec<SflRecord>> {
@@ -451,7 +400,6 @@ impl SflStage {
                     })
                     .collect()
             }
-            _ => vec![],
         }
     }
     // パフォーマンスの問題もあるから前後の関連だけ見て修正する
@@ -713,11 +661,13 @@ impl SflStage {
 }
 
 #[derive(Clone, Debug)]
+#[wasm_bindgen]
 pub struct SflMatch {
     // 節
     pub section: u32,
     // 節内の順序
     pub branch: u32,
+    #[wasm_bindgen(skip)]
     pub date_expression: String,
     pub sfl_stage: SflStage,
     pub team: SflTeam,
@@ -725,7 +675,37 @@ pub struct SflMatch {
     pub(crate) is_home: bool,
 }
 
-#[derive(Clone, Debug, Hash, Eq, PartialEq)]
+#[wasm_bindgen]
+impl SflMatch {
+    #[wasm_bindgen(getter)]
+    pub fn date_expression(&self) -> String {
+        self.date_expression.to_string()
+    }
+    pub fn to_records(&self) -> Vec<SflRecord> {
+        match self.sfl_stage {
+            JP2024DivisionS | JP2024DivisionF | JP2024AllDivision | JP2024Playoff
+            | JP2024GrandFinal => {
+                GameType::get_games_by_stage(&self.sfl_stage)
+                    .iter()
+                    .map(|(set_number, game_type)| {
+                        SflRecord {
+                            sfl_match: self.to_owned(),
+                            set_number: *set_number,
+                            win_flag: false,
+                            game_type: game_type.to_owned(),
+                            // pointはcorrect_recordでセットする
+                            point: 0,
+                            is_valid: false,
+                            is_prediction: true,
+                        }
+                    })
+                    .collect()
+            }
+        }
+    }
+}
+#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
+#[wasm_bindgen]
 pub enum SflTeam {
     G8S,
     DFM,
@@ -757,11 +737,6 @@ impl SflTeam {
             VAR => 10,
             FAV => 11,
         }
-    }
-}
-impl fmt::Display for SflTeam {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
     }
 }
 
@@ -877,7 +852,7 @@ pub fn create_key_function_and_init_ratings(
     teams: Vec<SflTeam>,
 ) -> (fn(&SflRecord) -> (usize, usize), Vec<f64>) {
     let max_team_index = teams.iter().map(|team| team.get_index()).max().unwrap();
-    let mut ratings: Vec<f64> = vec![1500_f64; (max_team_index + 1) * 4];
+    let ratings: Vec<f64> = vec![1500_f64; (max_team_index + 1) * 4];
     match setting {
         SflRatingSetting::TeamOnly => {
             todo!()
@@ -911,12 +886,6 @@ pub fn create_key_function_and_init_ratings(
             (home_away_game_type_function, ratings)
         }
     }
-}
-
-struct SflSimulationResult {}
-
-pub fn simulate(records: Vec<SflRecord>) -> SflSimulationResult {
-    SflSimulationResult {}
 }
 
 pub fn get_place_sim_count(
