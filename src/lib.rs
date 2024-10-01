@@ -1,5 +1,6 @@
 pub mod sfl;
 mod utils;
+use crate::sfl::SflRatingSetting::HomeAwayGameType;
 use crate::sfl::SflStage::{
     JP2024AllDivision, JP2024DivisionF, JP2024DivisionS, JP2024GrandFinal, JP2024Playoff,
 };
@@ -10,7 +11,6 @@ use crate::sfl::{
 use rand::prelude::*;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_test::console_log;
-use crate::sfl::SflRatingSetting::HomeAwayGameType;
 
 #[wasm_bindgen]
 pub struct SflRating {
@@ -22,10 +22,8 @@ impl SflRating {
         SflRating { ratings: vec![] }
     }
     pub fn calc_ratings(&mut self, sfl_stage: &SflStage, sfl_records: &Vec<Vec<SflRecord>>) {
-        let (rate_index_function, mut ratings) = create_key_function_and_init_ratings(
-            HomeAwayGameType,
-            sfl_stage.get_teams(),
-        );
+        let (rate_index_function, mut ratings) =
+            create_key_function_and_init_ratings(HomeAwayGameType, sfl_stage.get_teams());
         for records in sfl_records.iter() {
             for record in records.into_iter() {
                 // 無効なセットおよび予想のセットは無視
@@ -96,8 +94,8 @@ impl SflSimulationResult {
 
     pub fn current_simulated_result() -> SflSimulationResult {
         SflSimulationResult {
-            division_places: vec![vec![0, 5, 2, 3, 4, 1], vec![7, 8, 9, 6, 10, 11]],
-            playoff_places: vec![0, 7, 8, 9, 5, 6, 2, 3, 4, 10, 1, 11],
+            division_places: vec![vec![0, 5, 2, 3, 4, 1], vec![9, 7, 8, 6, 10, 11]],
+            playoff_places: vec![0, 9, 7, 5, 2, 8, 6, 3, 10, 4, 1, 11],
             division_place_count: vec![
                 vec![7493, 1681, 589, 196, 36, 5],
                 vec![3, 64, 247, 754, 2093, 6839],
@@ -105,12 +103,12 @@ impl SflSimulationResult {
                 vec![424, 1596, 2503, 2911, 1960, 606],
                 vec![78, 549, 1185, 2225, 3925, 2038],
                 vec![1301, 3536, 2655, 1624, 707, 177],
-                vec![1491, 1917, 2386, 2890, 1260, 56],
-                vec![3544, 2683, 2051, 1312, 393, 17],
-                vec![2736, 2603, 2363, 1641, 641, 16],
-                vec![2119, 2459, 2429, 2180, 795, 18],
-                vec![110, 337, 764, 1916, 6161, 712],
-                vec![0, 1, 7, 61, 750, 9181],
+                vec![414, 1045, 1982, 3655, 2747, 157],
+                vec![3492, 2980, 2155, 1036, 333, 4],
+                vec![1935, 2683, 2936, 1747, 687, 12],
+                vec![4039, 2923, 1913, 864, 259, 2],
+                vec![120, 369, 1014, 2624, 5432, 441],
+                vec![0, 0, 0, 74, 542, 9384],
             ],
             division_points_battles: vec![
                 vec![2649375, 182110],
@@ -119,26 +117,26 @@ impl SflSimulationResult {
                 vec![2036995, -9088],
                 vec![1820740, -107926],
                 vec![2255935, 11840],
-                vec![2239095, 47324],
-                vec![2464485, 85981],
-                vec![2411165, 53375],
-                vec![2334410, 71232],
-                vec![1798075, -40290],
-                vec![1128380, -217622],
+                vec![2063780, 1422],
+                vec![2475185, 89294],
+                vec![2369615, -686],
+                vec![2499925, 116162],
+                vec![1864545, 10012],
+                vec![1168085, -216204],
             ],
             playoff_place_count: vec![
-                vec![2890, 1894, 4058, 921],
-                vec![16, 32, 87, 179],
-                vec![819, 955, 1754, 2568],
-                vec![358, 591, 1290, 2284],
-                vec![80, 202, 490, 1040],
+                vec![2766, 2018, 4058, 921],
+                vec![17, 31, 87, 179],
+                vec![836, 938, 1754, 2568],
+                vec![372, 577, 1290, 2284],
+                vec![76, 206, 490, 1040],
                 vec![992, 1171, 2321, 3008],
-                vec![937, 889, 1848, 2120],
-                vec![1487, 1652, 2802, 2337],
-                vec![1183, 1337, 2654, 2528],
-                vec![1159, 1172, 2351, 2325],
-                vec![79, 105, 344, 683],
-                vec![0, 0, 1, 7],
+                vec![376, 406, 1029, 1630],
+                vec![1498, 1614, 3119, 2396],
+                vec![784, 1001, 2539, 3230],
+                vec![2186, 1892, 2897, 1900],
+                vec![97, 146, 416, 844],
+                vec![0, 0, 0, 0],
             ],
             match_points: vec![
                 vec![200000, 0, 50000, 200000],
@@ -168,33 +166,33 @@ impl SflSimulationResult {
                 vec![100000, 100000, 0, 200000],
                 vec![100000, 100000, 0, 200000],
                 vec![0, 200000, 0, 200000],
-                vec![74050, 125950, 91660, 120890],
-                vec![103490, 96510, 72575, 140130],
-                vec![110210, 89790, 94550, 118115],
+                vec![0, 200000, 200000, 50000],
+                vec![100000, 100000, 200000, 0],
+                vec![0, 200000, 200000, 50000],
                 vec![106910, 93090, 94880, 117625],
                 vec![81600, 118400, 124590, 88950],
                 vec![100560, 99440, 123925, 88425],
-                vec![87340, 112660, 67985, 143545],
-                vec![88960, 111040, 90315, 121985],
-                vec![113010, 86990, 65435, 148550],
+                vec![79270, 120730, 90695, 121635],
+                vec![81670, 118330, 98615, 113815],
+                vec![98710, 101290, 65900, 146540],
                 vec![112400, 87600, 131710, 80110],
                 vec![104020, 95980, 94775, 118130],
                 vec![84360, 115640, 107480, 104915],
-                vec![101600, 98400, 82020, 130650],
-                vec![103480, 96520, 105875, 106570],
-                vec![120850, 79150, 112995, 99300],
+                vec![100690, 99310, 95815, 116880],
+                vec![88620, 111380, 121770, 91170],
+                vec![107450, 92550, 114140, 97970],
                 vec![99660, 100340, 99780, 112890],
                 vec![116560, 83440, 112245, 100390],
                 vec![106280, 93720, 89325, 123350],
-                vec![87410, 112590, 101600, 110815],
+                vec![66780, 133220, 113330, 101060],
                 vec![73250, 126750, 109575, 103855],
-                vec![89960, 110040, 96930, 115875],
+                vec![81990, 118010, 121065, 92775],
                 vec![85960, 114040, 96650, 115295],
                 vec![106040, 93960, 101680, 110800],
                 vec![101170, 98830, 113520, 98915],
-                vec![96880, 103120, 83495, 128760],
-                vec![113700, 86300, 127055, 85025],
-                vec![88470, 111530, 119195, 93545],
+                vec![75890, 124110, 93785, 118435],
+                vec![112870, 87130, 139975, 71800],
+                vec![75030, 124970, 120660, 93135],
                 vec![96570, 103430, 128090, 84545],
                 vec![116870, 83130, 135275, 76280],
                 vec![110710, 89290, 140800, 71160],
@@ -408,7 +406,7 @@ impl SflSimulation {
             _ => vec![],
         }
     }
-    pub fn simulate(&mut self) {
+    pub fn simulate(&mut self, output_flag: bool) {
         let seed: [u8; 32] = [5; 32];
         let mut rng: StdRng = rand::SeedableRng::from_seed(seed);
         self.result = SflSimulationResult::new();
@@ -442,31 +440,33 @@ impl SflSimulation {
                 .cmp(&self.result.playoff_place_count[*team_index_a][0])
         });
         self.result.playoff_places = playoff_places;
-        let simulated_result_str: Vec<String> = [
-            format!("division_places: {:?}", self.result.division_places),
-            format!("playoff_places: {:?}", self.result.playoff_places),
-            format!(
-                "division_place_count: {:?}",
-                self.result.division_place_count
-            ),
-            format!(
-                "division_points_battles: {:?}",
-                self.result.division_points_battles
-            ),
-            format!("playoff_place_count: {:?}", self.result.playoff_place_count),
-            format!("match_points: {:?}", self.result.match_points),
-        ]
-        .iter()
-        .map(|str| str.replace("[", "vec!["))
-        .collect();
-        let joined = simulated_result_str.join(",");
-        console_log!("{}", joined);
+        if output_flag {
+            console_log!("{:?}", self.result.division_place_count);
+        } else {
+            let simulated_result_str: Vec<String> = [
+                format!("division_places: {:?}", self.result.division_places),
+                format!("playoff_places: {:?}", self.result.playoff_places),
+                format!(
+                    "division_place_count: {:?}",
+                    self.result.division_place_count
+                ),
+                format!(
+                    "division_points_battles: {:?}",
+                    self.result.division_points_battles
+                ),
+                format!("playoff_place_count: {:?}", self.result.playoff_place_count),
+                format!("match_points: {:?}", self.result.match_points),
+            ]
+            .iter()
+            .map(|str| str.replace("[", "vec!["))
+            .collect();
+            let joined = simulated_result_str.join(",");
+            console_log!("{}", joined);
+        }
     }
     fn simulate_one_time(&mut self, rng: &mut StdRng) {
-        let (rate_index_function, _) = create_key_function_and_init_ratings(
-            HomeAwayGameType,
-            self.sfl_stage.get_teams(),
-        );
+        let (rate_index_function, _) =
+            create_key_function_and_init_ratings(HomeAwayGameType, self.sfl_stage.get_teams());
 
         let mut sfl_records = self.sfl_records.to_owned();
         // レーティングに基づきランダムに結果をセット
