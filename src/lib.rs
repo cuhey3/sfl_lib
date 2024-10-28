@@ -6,7 +6,7 @@ use crate::sfl::SflStage::{
 };
 use crate::sfl::{
     create_key_function_and_init_ratings, get_win_percentage, update_rating, SflMatch,
-    SflRatingSetting, SflRecord, SflStage, SflTeam,
+    SflRecord, SflStage, SflTeam,
 };
 use rand::prelude::*;
 use wasm_bindgen::prelude::*;
@@ -48,6 +48,25 @@ impl SflRating {
     }
 }
 
+#[wasm_bindgen]
+pub struct DivisionPlaceDetail {
+    pub first: usize,
+    pub second: usize,
+    pub third: usize,
+    pub time: usize,
+}
+
+impl DivisionPlaceDetail {
+    fn new(params: &Vec<usize>) -> DivisionPlaceDetail {
+        DivisionPlaceDetail {
+            first: params[0],
+            second: params[1],
+            third: params[2],
+            time: params[3],
+        }
+    }
+}
+
 #[derive(Copy, Clone)]
 #[wasm_bindgen]
 pub struct SflStats {
@@ -78,6 +97,8 @@ pub struct SflSimulationResult {
     pub match_points: Vec<Vec<u32>>,
     pub division_places: Vec<Vec<usize>>,
     pub playoff_places: Vec<usize>,
+    pub division_place_detail: Vec<Vec<Vec<usize>>>,
+    pub division_place_detail_flatten: Vec<Vec<usize>>,
 }
 
 impl SflSimulationResult {
@@ -89,6 +110,8 @@ impl SflSimulationResult {
             match_points: vec![vec![0_u32; 4]; 60],
             division_places: vec![vec![]; 2],
             playoff_places: vec![],
+            division_place_detail: vec![vec![vec![0; 12]; 12]; 12],
+            division_place_detail_flatten: vec![],
         }
     }
 
@@ -199,6 +222,101 @@ impl SflSimulationResult {
                 vec![99330, 100670, 105310, 107400],
                 vec![86960, 113040, 86935, 125560],
                 vec![89800, 110200, 142380, 70885],
+            ],
+            division_place_detail: vec![vec![vec![0; 12]; 12]; 12],
+            division_place_detail_flatten: vec![
+                vec![0, 2, 3, 269],
+                vec![0, 2, 4, 17],
+                vec![0, 2, 5, 1129],
+                vec![0, 3, 2, 97],
+                vec![0, 3, 4, 5],
+                vec![0, 3, 5, 129],
+                vec![0, 4, 2, 5],
+                vec![0, 4, 3, 2],
+                vec![0, 4, 5, 11],
+                vec![0, 5, 1, 7],
+                vec![0, 5, 2, 2100],
+                vec![0, 5, 3, 593],
+                vec![0, 5, 4, 84],
+                vec![2, 0, 3, 194],
+                vec![2, 0, 4, 5],
+                vec![2, 0, 5, 480],
+                vec![2, 3, 0, 94],
+                vec![2, 3, 4, 2],
+                vec![2, 3, 5, 62],
+                vec![2, 4, 5, 3],
+                vec![2, 5, 0, 341],
+                vec![2, 5, 3, 96],
+                vec![2, 5, 4, 3],
+                vec![3, 0, 2, 36],
+                vec![3, 0, 4, 1],
+                vec![3, 0, 5, 54],
+                vec![3, 2, 0, 48],
+                vec![3, 2, 4, 4],
+                vec![3, 2, 5, 35],
+                vec![3, 4, 0, 2],
+                vec![3, 4, 2, 1],
+                vec![3, 4, 5, 2],
+                vec![3, 5, 0, 57],
+                vec![3, 5, 2, 48],
+                vec![3, 5, 4, 4],
+                vec![4, 0, 3, 1],
+                vec![4, 2, 5, 1],
+                vec![4, 3, 0, 1],
+                vec![5, 0, 1, 36],
+                vec![5, 0, 2, 2008],
+                vec![5, 0, 3, 683],
+                vec![5, 0, 4, 93],
+                vec![5, 1, 0, 2],
+                vec![5, 1, 3, 1],
+                vec![5, 2, 0, 660],
+                vec![5, 2, 1, 1],
+                vec![5, 2, 3, 170],
+                vec![5, 2, 4, 5],
+                vec![5, 3, 0, 182],
+                vec![5, 3, 2, 103],
+                vec![5, 3, 4, 13],
+                vec![5, 4, 0, 12],
+                vec![5, 4, 1, 1],
+                vec![5, 4, 2, 3],
+                vec![5, 4, 3, 4],
+                vec![6, 7, 8, 5],
+                vec![6, 7, 9, 14],
+                vec![6, 8, 7, 1],
+                vec![6, 8, 9, 46],
+                vec![6, 8, 10, 1],
+                vec![6, 9, 7, 148],
+                vec![6, 9, 8, 280],
+                vec![6, 9, 10, 23],
+                vec![6, 10, 9, 3],
+                vec![7, 6, 9, 3],
+                vec![7, 8, 6, 1],
+                vec![7, 8, 9, 1],
+                vec![7, 9, 6, 2],
+                vec![7, 9, 8, 2],
+                vec![7, 9, 10, 1],
+                vec![8, 6, 7, 1],
+                vec![8, 6, 9, 48],
+                vec![8, 7, 6, 4],
+                vec![8, 7, 9, 3],
+                vec![8, 9, 6, 293],
+                vec![8, 9, 7, 51],
+                vec![8, 9, 10, 28],
+                vec![8, 10, 9, 1],
+                vec![9, 6, 7, 749],
+                vec![9, 6, 8, 2450],
+                vec![9, 6, 10, 329],
+                vec![9, 7, 6, 195],
+                vec![9, 7, 8, 173],
+                vec![9, 7, 10, 49],
+                vec![9, 8, 6, 3270],
+                vec![9, 8, 7, 745],
+                vec![9, 8, 10, 756],
+                vec![9, 10, 6, 117],
+                vec![9, 10, 7, 60],
+                vec![9, 10, 8, 145],
+                vec![10, 9, 6, 1],
+                vec![10, 9, 7, 1],
             ],
         }
     }
@@ -379,6 +497,16 @@ impl SflSimulation {
         }
     }
 
+    pub fn get_division_places_detail(&mut self, team_index: usize) -> Vec<DivisionPlaceDetail> {
+        self.result
+            .division_place_detail_flatten
+            .iter()
+            .filter(|detail| {
+                detail[0] == team_index || detail[1] == team_index || detail[2] == team_index
+            })
+            .map(|detail| DivisionPlaceDetail::new(detail))
+            .collect::<Vec<DivisionPlaceDetail>>()
+    }
     pub fn get_expect_point(&self, team_index: usize) -> i32 {
         self.result.division_points_battles[team_index][0]
     }
@@ -440,6 +568,20 @@ impl SflSimulation {
                 .cmp(&self.result.playoff_place_count[*team_index_a][0])
         });
         self.result.playoff_places = playoff_places;
+        for i in 0..12 {
+            for j in 0..12 {
+                for k in 0..12 {
+                    if self.result.division_place_detail[i][j][k] > 0 {
+                        self.result.division_place_detail_flatten.push(vec![
+                            i,
+                            j,
+                            k,
+                            self.result.division_place_detail[i][j][k],
+                        ]);
+                    }
+                }
+            }
+        }
         if output_flag {
             console_log!("{:?}", self.result.division_place_count);
         } else {
@@ -456,6 +598,10 @@ impl SflSimulation {
                 ),
                 format!("playoff_place_count: {:?}", self.result.playoff_place_count),
                 format!("match_points: {:?}", self.result.match_points),
+                format!(
+                    "division_place_detail_flatten: {:?}",
+                    self.result.division_place_detail_flatten
+                ),
             ]
             .iter()
             .map(|str| str.replace("[", "vec!["))
@@ -596,6 +742,10 @@ impl SflSimulation {
                     playoff_team[n].push((team, point, battle));
                 }
             }
+            let first = sortable.get(0).unwrap().0;
+            let second = sortable.get(1).unwrap().0;
+            let third = sortable.get(2).unwrap().0;
+            self.result.division_place_detail[first][second][third] += 1;
         }
         for n in 0..2_usize {
             for m in 0..2_usize {
