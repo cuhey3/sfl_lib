@@ -5,8 +5,8 @@ use crate::sfl::SflStage::{
     JP2024AllDivision, JP2024DivisionF, JP2024DivisionS, JP2024GrandFinal, JP2024Playoff,
 };
 use crate::sfl::{
-    create_key_function_and_init_ratings, get_win_percentage, update_rating, SflMatch,
-    SflRecord, SflStage, SflTeam,
+    create_key_function_and_init_ratings, get_win_percentage, update_rating, SflMatch, SflRecord,
+    SflStage, SflTeam,
 };
 use rand::prelude::*;
 use wasm_bindgen::prelude::*;
@@ -56,6 +56,29 @@ pub struct DivisionPlaceDetail {
     pub time: usize,
 }
 
+#[wasm_bindgen]
+pub struct PlaceToPointDetail {
+    pub time: usize,
+    pub sum_point: usize,
+    pub highest_pont: usize,
+    pub lowest_point: usize,
+}
+
+impl PlaceToPointDetail {
+    fn from_vec(place_to_points: &Vec<usize>) -> Vec<PlaceToPointDetail>{
+        let mut result = vec![];
+        for n in 0..6 {
+            result.push(PlaceToPointDetail {
+                time: place_to_points[n * 4],
+                sum_point: place_to_points[n * 4 + 1],
+                highest_pont: place_to_points[n * 4 + 2],
+                lowest_point: place_to_points[n * 4 + 3],
+            });
+        }
+        result
+    }
+}
+
 impl DivisionPlaceDetail {
     fn new(params: &Vec<usize>) -> DivisionPlaceDetail {
         DivisionPlaceDetail {
@@ -99,6 +122,7 @@ pub struct SflSimulationResult {
     pub playoff_places: Vec<usize>,
     pub division_place_detail: Vec<Vec<Vec<usize>>>,
     pub division_place_detail_flatten: Vec<Vec<usize>>,
+    pub place_to_points: Vec<Vec<usize>>,
 }
 
 impl SflSimulationResult {
@@ -112,6 +136,13 @@ impl SflSimulationResult {
             playoff_places: vec![],
             division_place_detail: vec![vec![vec![0; 12]; 12]; 12],
             division_place_detail_flatten: vec![],
+            place_to_points: vec![
+                vec![
+                    0, 0, 0, 400, 0, 0, 0, 400, 0, 0, 0, 400, 0, 0, 0, 400, 0, 0, 0, 400, 0, 0, 0,
+                    400,
+                ];
+                12
+            ],
         }
     }
 
@@ -318,6 +349,56 @@ impl SflSimulationResult {
                 vec![10, 9, 6, 1],
                 vec![10, 9, 7, 1],
             ],
+            place_to_points: vec![
+                vec![
+                    4448, 1162605, 300, 215, 3591, 870470, 290, 205, 1399, 314130, 260, 190, 514,
+                    107775, 240, 180, 47, 9140, 210, 180, 1, 180, 180, 180,
+                ],
+                vec![
+                    0, 0, 0, 400, 3, 600, 200, 200, 45, 8810, 210, 180, 341, 62650, 210, 155, 2312,
+                    376960, 200, 120, 7299, 1018365, 190, 90,
+                ],
+                vec![
+                    1280, 322640, 275, 220, 2339, 558595, 275, 205, 4401, 973655, 265, 175, 1622,
+                    329605, 245, 165, 313, 57695, 210, 155, 45, 7645, 185, 155,
+                ],
+                vec![
+                    292, 71325, 265, 220, 688, 159880, 255, 200, 2013, 438170, 255, 175, 5731,
+                    1134610, 245, 155, 1032, 183260, 210, 145, 244, 40100, 195, 145,
+                ],
+                vec![
+                    3, 685, 235, 225, 46, 10250, 235, 205, 236, 49330, 225, 175, 1085, 210345, 225,
+                    155, 6220, 1061580, 215, 115, 2410, 357790, 190, 115,
+                ],
+                vec![
+                    3977, 1044800, 300, 220, 3333, 818890, 290, 210, 1906, 434540, 260, 190, 707,
+                    149990, 240, 180, 76, 14865, 210, 180, 1, 180, 180, 180,
+                ],
+                vec![
+                    521, 136340, 290, 230, 3580, 867520, 280, 210, 3883, 860965, 265, 180, 1420,
+                    289650, 240, 170, 595, 113770, 225, 170, 1, 170, 170, 170,
+                ],
+                vec![
+                    10, 2425, 255, 230, 443, 102795, 255, 205, 1756, 382690, 255, 185, 4232,
+                    840380, 235, 155, 3434, 618365, 215, 135, 125, 19185, 175, 135,
+                ],
+                vec![
+                    429, 113155, 290, 230, 4821, 1190290, 290, 210, 3055, 688985, 260, 190, 1208,
+                    251625, 240, 180, 487, 94290, 220, 170, 0, 0, 0, 400,
+                ],
+                vec![
+                    9038, 2564860, 325, 225, 830, 207710, 275, 215, 119, 27615, 255, 215, 12, 2630,
+                    235, 205, 1, 215, 215, 215, 0, 0, 0, 400,
+                ],
+                vec![
+                    2, 480, 245, 235, 326, 73970, 245, 205, 1187, 251895, 235, 175, 3072, 598475,
+                    225, 145, 5155, 904540, 215, 125, 258, 37495, 175, 125,
+                ],
+                vec![
+                    0, 0, 0, 400, 0, 0, 0, 400, 0, 0, 0, 400, 56, 9710, 190, 150, 328, 52170, 180,
+                    130, 9616, 1159625, 180, 70,
+                ],
+            ],
         }
     }
 }
@@ -507,6 +588,11 @@ impl SflSimulation {
             .map(|detail| DivisionPlaceDetail::new(detail))
             .collect::<Vec<DivisionPlaceDetail>>()
     }
+    pub fn get_place_to_point_detail(&mut self, team_index: usize) -> Vec<PlaceToPointDetail> {
+        let team_place_to_points = &self.result
+            .place_to_points[team_index];
+        PlaceToPointDetail::from_vec(team_place_to_points)
+    }
     pub fn get_expect_point(&self, team_index: usize) -> i32 {
         self.result.division_points_battles[team_index][0]
     }
@@ -602,6 +688,7 @@ impl SflSimulation {
                     "division_place_detail_flatten: {:?}",
                     self.result.division_place_detail_flatten
                 ),
+                format!("place_to_points: {:?}", self.result.place_to_points),
             ]
             .iter()
             .map(|str| str.replace("[", "vec!["))
@@ -741,6 +828,12 @@ impl SflSimulation {
                 if nth < 3 {
                     playoff_team[n].push((team, point, battle));
                 }
+                self.result.place_to_points[team_index][nth * 4] += 1;
+                self.result.place_to_points[team_index][nth * 4 + 1] += point as usize;
+                self.result.place_to_points[team_index][nth * 4 + 2] =
+                    (point as usize).max(self.result.place_to_points[team_index][nth * 4 + 2]);
+                self.result.place_to_points[team_index][nth * 4 + 3] =
+                    (point as usize).min(self.result.place_to_points[team_index][nth * 4 + 3]);
             }
             let first = sortable.get(0).unwrap().0;
             let second = sortable.get(1).unwrap().0;
